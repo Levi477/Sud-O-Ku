@@ -4,6 +4,10 @@
 
 #define EMPTY 0
 #define N 9
+#define EASY 35
+#define MEDIUM 28
+#define HARD 22
+#define GIVE_UP 17
 
 // Function to check if a number can be placed safely in the grid
 int isSafe(int grid[N][N], int row, int col, int num) {
@@ -66,29 +70,39 @@ int fillSudoku(int grid[N][N], int row, int col) {
 }
 
 // Function to generate a random Sudoku grid with more empty cells
-void generateSudoku(int grid[N][N]) {
+// Function to generate a random Sudoku grid with exactly 17 hints
+void generateSudoku(int grid[N][N],int level) {
     srand(time(NULL));
 
     // Fill the Sudoku grid using backtracking
     fillSudoku(grid, 0, 0);
 
-    // Randomly remove more numbers to create empty cells
-    int numToRemove = rand() % (N*N - 17) + 17; // Randomly select number of cells to remove, ensuring at least 17 cells remain filled
-    for (int i = 0; i < numToRemove; i++) {
+    // Count the number of filled cells
+    int filledCount = 0;
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            if (grid[i][j] != EMPTY) {
+                filledCount++;
+            }
+        }
+    }
+
+    // Randomly remove excess numbers to create exactly 17 hints
+    int numToRemove = filledCount - level; // Calculate the number of cells to remove
+    while (numToRemove > 0) {
         int row = rand() % N;
         int col = rand() % N;
-        while (grid[row][col] == EMPTY) { // Ensure not removing from an already empty cell
-            row = rand() % N;
-            col = rand() % N;
+        if (grid[row][col] != EMPTY) { // If the cell is not empty
+            grid[row][col] = EMPTY; // Remove the number
+            numToRemove--; // Decrement the count of cells to remove
         }
-        grid[row][col] = EMPTY;
     }
 }
+
 
 // Function to print the Sudoku grid with grids
 void printGrid(int grid[N][N]) {
     printf("Generated Sudoku Grid:\n");
-    // printf(" -----------------------\n");
     for (int i = 0; i < N; i++) {
         printf("|");
         for (int j = 0; j < N; j++) {
@@ -111,6 +125,57 @@ void printGrid(int grid[N][N]) {
 
 int main() {
     int grid[N][N];
+    unsigned int level = MEDIUM;
+    unsigned int choice;
+ 
+    printf("\n****************************************************************\n");
+    printf("███████╗██╗   ██╗██████╗        ██████╗       ██╗  ██╗██╗   ██╗\n");
+    printf("██╔════╝██║   ██║██╔══██╗      ██╔═══██╗      ██║ ██╔╝██║   ██║\n");
+    printf("███████╗██║   ██║██║  ██║█████╗██║   ██║█████╗█████╔╝ ██║   ██║\n");
+    printf("╚════██║██║   ██║██║  ██║╚════╝██║   ██║╚════╝██╔═██╗ ██║   ██║\n");
+    printf("███████║╚██████╔╝██████╔╝      ╚██████╔╝      ██║  ██╗╚██████╔╝\n");
+    printf("╚══════╝ ╚═════╝ ╚═════╝        ╚═════╝       ╚═╝  ╚═╝ ╚═════╝ \n");
+    printf("****************************************************************\n\n");
+
+    printf(" █▀▄ █ █▀▀ █▀▀ █ █▀▀ █░█ █░░ ▀█▀ █▄█\n");
+    printf(" █▄▀ █ █▀░ █▀░ █ █▄▄ █▄█ █▄▄ ░█░ ░█░\n\n");
+
+    printf(
+    "1. Easy\n"
+    "2. Medium\n"
+    "3. Hard\n"
+    "4. GIVE UP !!\n"
+    "----------------------------\n"
+                );
+
+    scanf("%d",&choice);
+
+    switch (choice)
+    {
+    case 1:
+        level = EASY;
+        printf("Difficulty Set to Easy.\n");
+        break;
+    case 2:
+        level = MEDIUM;
+        printf("Difficulty Set to Medium.\n");
+        break;
+    case 3:
+        level = HARD;
+        printf("Difficulty Set to Hard.\n");
+        break;
+    case 4:
+        level = GIVE_UP;
+        printf("Difficulty Set to VERY HARD.\n");
+        break;    
+    default:
+        level = MEDIUM;
+        printf("Invalid Input!\n");
+        printf("Difficulty Set to Medium.\n");
+        break;
+    }
+
+    
 
     // Initialize the grid with EMPTY values
     for (int i = 0; i < N; i++) {
@@ -119,9 +184,8 @@ int main() {
         }
     }
 
-    generateSudoku(grid);
+    generateSudoku(grid,level);
     printGrid(grid);
 
     return 0;
 }
-
