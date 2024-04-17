@@ -1,13 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <curses.h>
 
-#define EMPTY 0
 #define N 9
+#define EMPTY 0
 #define EASY 35
 #define MEDIUM 28
 #define HARD 22
 #define GIVE_UP 17
+#define false 0
+#define true 1
 
 // Function to check if a number can be placed safely in the grid
 int isSafe(int grid[N][N], int row, int col, int num) {
@@ -39,92 +42,131 @@ int isSafe(int grid[N][N], int row, int col, int num) {
     return 1;
 }
 
-// Function to fill the Sudoku grid
-int fillSudoku(int grid[N][N], int row, int col) {
-    if (row == N - 1 && col == N) {
+// Function to find an empty cell in the Sudoku grid
+int findEmptyCell(int grid[N][N], int *row, int *col) {
+    for (*row = 0; *row < N; (*row)++) {
+        for (*col = 0; *col < N; (*col)++) {
+            if (grid[*row][*col] == EMPTY) {
+                return 1; // Found an empty cell
+            }
+        }
+    }
+
+    *row = -1;
+    *col = -1;
+    return 0; // No empty cell found
+}
+
+// Function to solve the Sudoku grid
+int solveSudoku(int grid[N][N]) {
+    // Find an empty cell
+    int row, col;
+    if (!findEmptyCell(grid, &row, &col)) {
+        // If no empty cell is found, the puzzle is solved
         return 1;
     }
 
-    if (col == N) {
-        row++;
-        col = 0;
-    }
-
-    if (grid[row][col] != EMPTY) {
-        return fillSudoku(grid, row, col + 1);
-    }
-
+    // Try placing numbers 1 to 9 in the empty cell
     for (int num = 1; num <= N; num++) {
+        // Check if the number is safe to place in the current cell
         if (isSafe(grid, row, col, num)) {
+            // Place the number in the cell
             grid[row][col] = num;
 
-            if (fillSudoku(grid, row, col + 1)) {
-                return 1;
+            // Recursively solve the rest of the puzzle
+            if (solveSudoku(grid)) {
+                return 1; // Puzzle is solved
             }
 
+            // If solving the rest of the puzzle fails, backtrack and try the next number
             grid[row][col] = EMPTY;
         }
     }
 
+    // If no number can be placed in the current cell, backtrack
     return 0;
 }
 
-// Function to generate a random Sudoku grid with more empty cells
-// Function to generate a random Sudoku grid with exactly 17 hints
-void generateSudoku(int grid[N][N],int level) {
-    srand(time(NULL));
-
-    // Fill the Sudoku grid using backtracking
-    fillSudoku(grid, 0, 0);
-
-    // Count the number of filled cells
-    int filledCount = 0;
+// Function to generate a random solvable Sudoku puzzle
+void generateSudoku(int grid[N][N]) {
+    // Initialize the grid with empty cells
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-            if (grid[i][j] != EMPTY) {
-                filledCount++;
-            }
+            grid[i][j] = EMPTY;
         }
     }
 
-    // Randomly remove excess numbers to create exactly 17 hints
-    int numToRemove = filledCount - level; // Calculate the number of cells to remove
-    while (numToRemove > 0) {
-        int row = rand() % N;
-        int col = rand() % N;
-        if (grid[row][col] != EMPTY) { // If the cell is not empty
-            grid[row][col] = EMPTY; // Remove the number
-            numToRemove--; // Decrement the count of cells to remove
+    // Fill the diagonal cells with random numbers
+    srand(time(NULL));
+    for (int i = 0; i < N; i += 3) {
+        for (int j = 0; j < N; j += 3) {
+            int num;
+            do {
+                num = rand() % N + 1;
+            } while (!isSafe(grid, i, j, num));
+            grid[i][j] = num;
         }
     }
+
+    // Solve the grid using backtracking
+    solveSudoku(grid);
 }
 
+// Function to print the Sudoku grid with curses library
+void printGrid(int grid[N][N], int row, int col) {
+    clear();
+    initscr(); // Initialize curses mode
+    start_color(); // Start color functionality
+    cbreak(); // Disable line buffering
+    keypad(stdscr, TRUE); // Enable keypad mode for capturing special keys
 
-// Function to print the Sudoku grid with grids
-void printGrid(int grid[N][N]) {
-    printf("Generated Sudoku Grid:\n");
+    // Define color pairs
+    init_pair(1, COLOR_BLACK, COLOR_YELLOW); // Black text on yellow background
+    init_pair(2, COLOR_WHITE, COLOR_BLUE); // White text on blue background
+
     for (int i = 0; i < N; i++) {
-        printf("|");
         for (int j = 0; j < N; j++) {
-            if (grid[i][j] == EMPTY) {
-                printf(" .");
+            if (i == row && j == col) {
+                attron(COLOR_PAIR(1)); // Enable color pair 1 (black text on yellow background)
+                mvprintw(i * 2, j * 4, "%2d", grid[i][j]);
+                attroff(COLOR_PAIR(1)); // Disable color pair 1
             } else {
-                printf(" %d", grid[i][j]);
+                attron(COLOR_PAIR(2)); // Enable color pair 2 (white text on blue background)
+                mvprintw(i * 2, j * 4, "%2d", grid[i][j]);
+                attroff(COLOR_PAIR(2)); // Disable color pair 2
             }
             if ((j + 1) % 3 == 0 && j != N - 1) {
-                printf("|");
+                mvprintw(i * 2, (j + 1) * 4 - 2, " |");
             }
         }
-        printf("|\n");
         if ((i + 1) % 3 == 0 && i != N - 1) {
-            printf(" -----------------------\n");
+            for (int k = 0; k < N * 4 + 2; k++) {
+                mvprintw(i * 2 + 1, k, "-");
+            }
         }
     }
-    printf(" -----------------------\n");
+
+    refresh(); // Refresh the screen
+}
+
+// Function to delete a specified number of elements from the Sudoku grid
+void deleteElements(int grid[N][N], int numToDelete) {
+    srand(time(NULL));
+    int count = 0;
+    while (count < numToDelete) {
+        int row = rand() % N;
+        int col = rand() % N;
+        if (grid[row][col] != EMPTY) {
+            grid[row][col] = EMPTY;
+            count++;
+        }
+    }
 }
 
 int main() {
     int grid[N][N];
+    bool sudokuHelper = false;
+    char choiceHelper;
     unsigned int level = MEDIUM;
     unsigned int choice;
  
@@ -145,10 +187,17 @@ int main() {
     "2. Medium\n"
     "3. Hard\n"
     "4. GIVE UP !!\n"
-    "----------------------------\n"
-                );
+    "----------------------------+\n");
 
     scanf("%d",&choice);
+    while ((getchar()) != '\n');  // Flush input buffer
+    printf("Do you want Helper Function ON ? (y/n): ");
+    scanf("%c",&choiceHelper);
+    while ((getchar()) != '\n');  // Flush input buffer
+    
+    if(choiceHelper == 'y' || choiceHelper == 'Y'){
+        sudokuHelper = true;
+    }
 
     switch (choice)
     {
@@ -175,17 +224,69 @@ int main() {
         break;
     }
 
-    
+    generateSudoku(grid);
+    // printGrid(grid);
 
-    // Initialize the grid with EMPTY values
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            grid[i][j] = EMPTY;
-        }
+    // Delete 17 elements from the solved Sudoku grid
+    deleteElements(grid, 81 - level);
+
+    // Print the modified Sudoku grid as a question to solve
+  int row = 0, col = 0;
+
+    // Print the Sudoku grid with curses library
+    printGrid(grid, row, col);
+
+    // Get user input for empty cells
+    while (1) {
+        int ch = getch(); // Get a character from the user
+
+        switch (ch) {
+            case KEY_UP:
+                row = (row == 0) ? N - 1 : row - 1; // Move cursor up
+                break;
+            case KEY_DOWN:
+                row = (row == N - 1) ? 0 : row + 1; // Move cursor down
+                break;
+            case KEY_LEFT:
+                col = (col == 0) ? N - 1 : col - 1; // Move cursor left
+                break;
+            case KEY_RIGHT:
+                col = (col == N - 1) ? 0 : col + 1; // Move cursor right
+                break;
+            case '\n':
+                // Prompt the user to enter a digit for the current cell
+                if (grid[row][col] == EMPTY) {
+                    printw("Enter a digit (1-9) for cell (%d, %d): ", row, col);
+                    refresh();
+                    int digit;
+                    scanw("%d", &digit);
+
+                    // Validate user input
+                       if (digit >= 1 && digit <= 9 && isSafe(grid, row, col, digit) && sudokuHelper) {
+                        grid[row][col] = digit;
+                        printGrid(grid,row,col);
+
+                    } else {
+                        printw("Invalid input! Please try again.");
+                        refresh();
+                    printGrid(grid,row,col);
+                    }
+                 
+                } else {
+                    printw("Cell (%d+1, %d+1) is already filled.", row, col);
+                    refresh();
+                    printGrid(grid,row,col);
+                }
+                break;
+            case 'q': // Press 'q' to quit
+                endwin(); // End curses mode
+                return 0;
+ }
+
+        // Print the Sudoku grid with updated cursor position
+        printGrid(grid, row, col);
     }
 
-    generateSudoku(grid,level);
-    printGrid(grid);
-
+    endwin();
     return 0;
 }
