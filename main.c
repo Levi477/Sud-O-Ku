@@ -22,7 +22,7 @@ void printReadme(){
     printf("██║░░██║███████╗██║░░██║██████╔╝██║░╚═╝░██║███████╗\n");
     printf("╚═╝░░╚═╝╚══════╝╚═╝░░╚═╝╚═════╝░╚═╝░░░░░╚═╝╚══════╝\n");
 
-    printf("-> This program Generates Random Sudoku.\n");
+    printf("\n\n-> This program Generates Random Sudoku.\n");
     printf("-> It has two types of functionalities.\n");
     printf("\t 1. Either Computer can show you solution of Randomly Generated Sudoku\n");
     printf("\t 2. Or You can solve Randomely Generated Sudoku\n");
@@ -31,6 +31,7 @@ void printReadme(){
     printf("\t\t - Medium -> 28 Hints Given\n");
     printf("\t\t - Hard -> 22 Hints Given\n");
     printf("\t\t - GIVE_UP(Hardest) -> 17 Hints Given\n");
+    printf("\t # After 10 minutes You will be given option to see solution.\n");
 
     initscr();
     start_color();
@@ -152,7 +153,7 @@ void generateSudoku(int grid[N][N]) {
 }
 
 // Function to print the Sudoku grid with curses library
-void printGrid(int grid[N][N], int row, int col) {
+void printGrid(int grid[N][N], int row, int col, time_t start_time) {
     clear();
     initscr(); // Initialize curses mode
     start_color(); // Start color functionality
@@ -162,30 +163,44 @@ void printGrid(int grid[N][N], int row, int col) {
     // Define color pairs
     init_pair(1, COLOR_BLACK, COLOR_YELLOW); // Black text on yellow background
     init_pair(2, COLOR_WHITE, COLOR_BLUE); // White text on blue background
+    init_pair(3,COLOR_RED,COLOR_YELLOW); // Red text on yellow background for timer
+    init_pair(4,COLOR_GREEN,COLOR_BLACK); // Green text on black background for | and -
+
+    // Calculate elapsed time
+    time_t current_time = time(NULL);
+    int elapsed_time = (int)(current_time - start_time - 4);
+
+    attron(COLOR_PAIR(3));
+    mvprintw(0, 0, "Elapsed Time: %02d:%02d", elapsed_time / 60, elapsed_time % 60);
+    attroff(COLOR_PAIR(3));
 
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
             if (i == row && j == col) {
                 attron(COLOR_PAIR(1)); // Enable color pair 1 (black text on yellow background)
-                mvprintw(i * 2, j * 4, "%2d", grid[i][j]);
+                mvprintw(i * 2 + 1, j * 4, "%2d", grid[i][j]);
                 attroff(COLOR_PAIR(1)); // Disable color pair 1
             } else {
                 attron(COLOR_PAIR(2)); // Enable color pair 2 (white text on blue background)
-                mvprintw(i * 2, j * 4, "%2d", grid[i][j]);
+                mvprintw(i * 2 + 1, j * 4, "%2d", grid[i][j]);
                 attroff(COLOR_PAIR(2)); // Disable color pair 2
             }
             if ((j + 1) % 3 == 0 && j != N - 1) {
-                mvprintw(i * 2, (j + 1) * 4 - 2, " |");
+                attron(COLOR_PAIR(4));
+                mvprintw(i * 2 + 1, (j + 1) * 4 - 2, " |");
+                attroff(COLOR_PAIR(4));
             }
         }
         if ((i + 1) % 3 == 0 && i != N - 1) {
             for (int k = 0; k < N * 4 + 2; k++) {
-                mvprintw(i * 2 + 1, k, "-");
+                attron(COLOR_PAIR(4));
+                mvprintw(i * 2 + 2, k, "-");
+                attroff(COLOR_PAIR(4));
             }
-
         }
     }
-    printw("\n----------------------------------\n");
+    printw("\n--------------------------------");
+
     refresh(); // Refresh the screen
 }
 
@@ -211,6 +226,8 @@ int main() {
     int gridSol[N][N];
     unsigned int initChoice,secondChoice;
     char readme;
+    time_t start_time;
+
    
     printf("\n****************************************************************\n");
     printf("███████╗██╗   ██╗██████╗        ██████╗       ██╗  ██╗██╗   ██╗\n");
@@ -231,6 +248,7 @@ int main() {
     initChoice = 1; 
     if(initChoice == 1){
 
+    time(&start_time);
     generateSudoku(grid);
 
     for(int i = 0;i<N;i++){
@@ -250,7 +268,7 @@ int main() {
         scanf("%d",&secondChoice);
 
         if(secondChoice == 1){
-            printGrid(grid,0,0);
+            printGrid(grid,0,0,start_time);
             init_pair(5,COLOR_RED,COLOR_GREEN);
             init_pair(6,COLOR_GREEN,COLOR_RED);
             attron(COLOR_PAIR(5));
@@ -260,7 +278,7 @@ int main() {
             printw("\nHit enter to see solution Sudoku :\n");
             attroff(COLOR_PAIR(6));
             getch();
-            printGrid(gridSol,0,0);
+            printGrid(gridSol,0,0,start_time);
             getch();
             endwin();
 
@@ -312,7 +330,7 @@ int main() {
   int row = 0, col = 0;
 
     // Print the Sudoku grid with curses library
-    printGrid(grid, row, col);
+    printGrid(grid, row, col,start_time);
 
     // Get user input for empty cells
     while (1) {
@@ -342,18 +360,18 @@ int main() {
                     // Validate user input
                        if (digit >= 1 && digit <= 9 && isSafe(grid, row, col, digit)) {
                         grid[row][col] = digit;
-                        printGrid(grid,row,col);
+                        printGrid(grid,row,col,start_time);
 
                     } else {
                         printw("Invalid input! Please try again.");
                         refresh();
-                    printGrid(grid,row,col);
+                    printGrid(grid,row,col,start_time);
                     }
                  
                 } else {
                     printw("Cell (%d, %d) is already filled.", row+1, col+1);
                     refresh();
-                    printGrid(grid,row,col);
+                    printGrid(grid,row,col,start_time);
                 }
                 break;
             case 'q': // Press 'q' to quit
@@ -361,8 +379,31 @@ int main() {
                 return 0;
  }
 
+    time_t current_time;
+        time(&current_time);
+        // start_time = current_time;
+        if ((int)(current_time - start_time) >= 600) { // 600 seconds = 10 minutes
+            // Prompt user if they want to see the solution
+            printf("\nDo you want to see the solution? (y/n): ");
+            char seeSolution;
+            scanf("%c", &seeSolution);
+            if (seeSolution == 'y' || seeSolution == 'Y') {
+                // Show the solution
+               printGrid(gridSol, 0, 0, start_time);
+               while ((getchar()) != '\n');  // Flush input buffer
+               printf("Solution displayed.\n");
+               getchar();
+               endwin();
+               return 0;
+            } else {
+                // Continue with the game
+                printf("Solution not displayed.\n");
+                fflush(stdin); // Clear input buffer
+            }
+        }
+
         // Print the Sudoku grid with updated cursor position
-        printGrid(grid, row, col);
+        printGrid(grid, row, col,start_time);
 
     }
         }
