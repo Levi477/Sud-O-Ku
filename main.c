@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <curses.h>
+#include <unistd.h>
 
 #define N 9
 #define EMPTY 0
@@ -11,6 +12,44 @@
 #define GIVE_UP 17
 #define false 0
 #define true 1
+
+void printReadme(){
+
+    printf("██████╗░███████╗░█████╗░██████╗░███╗░░░███╗███████╗\n");
+    printf("██╔══██╗██╔════╝██╔══██╗██╔══██╗████╗░████║██╔════╝\n");
+    printf("██████╔╝█████╗░░███████║██║░░██║██╔████╔██║█████╗░░\n");
+    printf("██╔══██╗██╔══╝░░██╔══██║██║░░██║██║╚██╔╝██║██╔══╝░░\n");
+    printf("██║░░██║███████╗██║░░██║██████╔╝██║░╚═╝░██║███████╗\n");
+    printf("╚═╝░░╚═╝╚══════╝╚═╝░░╚═╝╚═════╝░╚═╝░░░░░╚═╝╚══════╝\n");
+
+    printf("-> This program Generates Random Sudoku.\n");
+    printf("-> It has two types of functionalities.\n");
+    printf("\t 1. Either Computer can show you solution of Randomly Generated Sudoku\n");
+    printf("\t 2. Or You can solve Randomely Generated Sudoku\n");
+    printf("\t\t - There are total four types of difficulty modes in this option.\n");
+    printf("\t\t - Easy -> 35 Hints Given\n");
+    printf("\t\t - Medium -> 28 Hints Given\n");
+    printf("\t\t - Hard -> 22 Hints Given\n");
+    printf("\t\t - GIVE_UP(Hardest) -> 17 Hints Given\n");
+
+    initscr();
+    start_color();
+    init_pair(11,COLOR_CYAN,COLOR_BLUE);
+    attron(COLOR_PAIR(11));
+    printf("\n\n\n Press Enter to Generate Sudoku Grid....");
+    attroff(COLOR_PAIR(11));
+    refresh();
+    endwin();
+
+}
+
+void clearScreen() {
+#ifdef _WIN32
+    system("cls"); // for Windows
+#else
+    system("clear"); // for Unix-like systems
+#endif
+}
 
 // Function to check if a number can be placed safely in the grid
 int isSafe(int grid[N][N], int row, int col, int num) {
@@ -143,9 +182,10 @@ void printGrid(int grid[N][N], int row, int col) {
             for (int k = 0; k < N * 4 + 2; k++) {
                 mvprintw(i * 2 + 1, k, "-");
             }
+
         }
     }
-
+    printw("\n----------------------------------\n");
     refresh(); // Refresh the screen
 }
 
@@ -165,11 +205,13 @@ void deleteElements(int grid[N][N], int numToDelete) {
 
 int main() {
     int grid[N][N];
-    bool sudokuHelper = false;
     char choiceHelper;
     unsigned int level = MEDIUM;
     unsigned int choice;
- 
+    int gridSol[N][N];
+    unsigned int initChoice,secondChoice;
+    char readme;
+   
     printf("\n****************************************************************\n");
     printf("███████╗██╗   ██╗██████╗        ██████╗       ██╗  ██╗██╗   ██╗\n");
     printf("██╔════╝██║   ██║██╔══██╗      ██╔═══██╗      ██║ ██╔╝██║   ██║\n");
@@ -178,7 +220,56 @@ int main() {
     printf("███████║╚██████╔╝██████╔╝      ╚██████╔╝      ██║  ██╗╚██████╔╝\n");
     printf("╚══════╝ ╚═════╝ ╚═════╝        ╚═════╝       ╚═╝  ╚═╝ ╚═════╝ \n");
     printf("****************************************************************\n\n");
+    printf("Hit enter to Generate Random Sudoku ..\n");
+    printf("Press \'r\' to open readme Document\n");
+    if( (readme = getchar()) == 'r') {
+        clearScreen();
+        printReadme();
+        while ((getchar()) != '\n');  // Flush input buffer
+        getchar();
+    }
+    initChoice = 1; 
+    if(initChoice == 1){
 
+    generateSudoku(grid);
+
+    for(int i = 0;i<N;i++){
+        for(int j=0;j<N;j++){
+            gridSol[i][j] = grid[i][j]; 
+        }
+    }
+
+    deleteElements(grid, 81 - level);
+
+
+        clearScreen();
+        printf("# Generated Random Sudoku\n");
+        printf("\t 1. Solve randomley Generated sudoku\n");
+        printf("\t 2. Solve randomley Generated sudoku Manually\n");
+        printf(">");
+        scanf("%d",&secondChoice);
+
+        if(secondChoice == 1){
+            printGrid(grid,0,0);
+            init_pair(5,COLOR_RED,COLOR_GREEN);
+            init_pair(6,COLOR_GREEN,COLOR_RED);
+            attron(COLOR_PAIR(5));
+            printw("Generated Sudoku ^^^^ \n");    
+            attroff(COLOR_PAIR(5));
+            attron(COLOR_PAIR(6));
+            printw("\nHit enter to see solution Sudoku :\n");
+            attroff(COLOR_PAIR(6));
+            getch();
+            printGrid(gridSol,0,0);
+            getch();
+            endwin();
+
+        }
+
+        if(secondChoice == 2){
+
+    clearScreen();
+    
     printf(" █▀▄ █ █▀▀ █▀▀ █ █▀▀ █░█ █░░ ▀█▀ █▄█\n");
     printf(" █▄▀ █ █▀░ █▀░ █ █▄▄ █▄█ █▄▄ ░█░ ░█░\n\n");
 
@@ -191,13 +282,6 @@ int main() {
 
     scanf("%d",&choice);
     while ((getchar()) != '\n');  // Flush input buffer
-    printf("Do you want Helper Function ON ? (y/n): ");
-    scanf("%c",&choiceHelper);
-    while ((getchar()) != '\n');  // Flush input buffer
-    
-    if(choiceHelper == 'y' || choiceHelper == 'Y'){
-        sudokuHelper = true;
-    }
 
     switch (choice)
     {
@@ -223,12 +307,6 @@ int main() {
         printf("Difficulty Set to Medium.\n");
         break;
     }
-
-    generateSudoku(grid);
-    // printGrid(grid);
-
-    // Delete 17 elements from the solved Sudoku grid
-    deleteElements(grid, 81 - level);
 
     // Print the modified Sudoku grid as a question to solve
   int row = 0, col = 0;
@@ -256,13 +334,13 @@ int main() {
             case '\n':
                 // Prompt the user to enter a digit for the current cell
                 if (grid[row][col] == EMPTY) {
-                    printw("Enter a digit (1-9) for cell (%d, %d): ", row, col);
+                    printw("Enter a digit (1-9) for cell (%d, %d): ", row+1, col+1);
                     refresh();
                     int digit;
                     scanw("%d", &digit);
 
                     // Validate user input
-                       if (digit >= 1 && digit <= 9 && isSafe(grid, row, col, digit) && sudokuHelper) {
+                       if (digit >= 1 && digit <= 9 && isSafe(grid, row, col, digit)) {
                         grid[row][col] = digit;
                         printGrid(grid,row,col);
 
@@ -273,7 +351,7 @@ int main() {
                     }
                  
                 } else {
-                    printw("Cell (%d+1, %d+1) is already filled.", row, col);
+                    printw("Cell (%d, %d) is already filled.", row+1, col+1);
                     refresh();
                     printGrid(grid,row,col);
                 }
@@ -285,6 +363,11 @@ int main() {
 
         // Print the Sudoku grid with updated cursor position
         printGrid(grid, row, col);
+
+    }
+        }
+    endwin();
+
     }
 
     endwin();
